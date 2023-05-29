@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart';
-import "package:google_maps_webapi/geocoding.dart";
-import 'package:google_maps_webapi/places.dart';
+import "package:google_maps_webservice/geocoding.dart";
+import 'package:google_maps_webservice/places.dart';
 import 'logger.dart';
 import 'autocomplete_view.dart';
 
@@ -18,6 +18,8 @@ class MapLocationPicker extends StatefulWidget {
 
   /// Lite mode for the map (default: false)
   final bool liteModeEnabled;
+
+  final Widget? widget;
 
   /// API key for the map & places
   final String apiKey;
@@ -122,6 +124,8 @@ class MapLocationPicker extends StatefulWidget {
   /// location: Location(lat: -33.867, lng: 151.195)
   final Location? location;
 
+  final Color iconColor;
+
   /// Radius for restricting results to a radius around a location
   /// radius: Radius in meters
   final num? radius;
@@ -165,8 +169,10 @@ class MapLocationPicker extends StatefulWidget {
     required this.apiKey,
     this.geoCodingBaseUrl,
     this.geoCodingHttpClient,
+    this.widget,
     this.geoCodingApiHeaders,
     this.language,
+    required this.iconColor,
     this.locationType = const [],
     this.resultType = const [],
     this.minMaxZoomPreference = const MinMaxZoomPreference(10, 20),
@@ -413,50 +419,50 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                 },
               ),
               const Spacer(),
-              Padding(
-                padding: const EdgeInsets.all(5.0),
-                child: Card(
-                  color: Theme.of(context).primaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(360),
-                  ),
-                  elevation: 5,
-                  child: Padding(
-                    padding: const EdgeInsets.all(4.5),
-                    child: PopupMenuButton(
-                      tooltip: 'Map Type',
-                      initialValue: _mapType,
-                      icon: Icon(
-                        Icons.layers,
-                        color: Theme.of(context).colorScheme.onPrimary,
-                      ),
-                      onSelected: (MapType mapType) {
-                        setState(() {
-                          _mapType = mapType;
-                        });
-                      },
-                      itemBuilder: (context) => const [
-                        PopupMenuItem(
-                          value: MapType.normal,
-                          child: Text('Normal'),
-                        ),
-                        PopupMenuItem(
-                          value: MapType.hybrid,
-                          child: Text('Hybrid'),
-                        ),
-                        PopupMenuItem(
-                          value: MapType.satellite,
-                          child: Text('Satellite'),
-                        ),
-                        PopupMenuItem(
-                          value: MapType.terrain,
-                          child: Text('Terrain'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              // Padding(
+              //   padding: const EdgeInsets.all(5.0),
+              //   child: Card(
+              //     color: Theme.of(context).primaryColor,
+              //     shape: RoundedRectangleBorder(
+              //       borderRadius: BorderRadius.circular(360),
+              //     ),
+              //     elevation: 5,
+              //     child: Padding(
+              //       padding: const EdgeInsets.all(4.5),
+              //       child: PopupMenuButton(
+              //         tooltip: 'Map Type',
+              //         initialValue: _mapType,
+              //         icon: Icon(
+              //           Icons.layers,
+              //           color: Theme.of(context).colorScheme.onPrimary,
+              //         ),
+              //         onSelected: (MapType mapType) {
+              //           setState(() {
+              //             _mapType = mapType;
+              //           });
+              //         },
+              //         itemBuilder: (context) => const [
+              //           PopupMenuItem(
+              //             value: MapType.normal,
+              //             child: Text('Normal'),
+              //           ),
+              //           PopupMenuItem(
+              //             value: MapType.hybrid,
+              //             child: Text('Hybrid'),
+              //           ),
+              //           PopupMenuItem(
+              //             value: MapType.satellite,
+              //             child: Text('Satellite'),
+              //           ),
+              //           PopupMenuItem(
+              //             value: MapType.terrain,
+              //             child: Text('Terrain'),
+              //           ),
+              //         ],
+              //       ),
+              //     ),
+              //   ),
+              // ),
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: FloatingActionButton(
@@ -478,72 +484,86 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                         lat: position.latitude, lng: position.longitude));
                     setState(() {});
                   },
-                  child: const Icon(Icons.my_location),
+                  child: Icon(Icons.my_location, color: widget.iconColor,),
                 ),
               ),
-              Card(
-                margin: widget.bottomCardMargin,
-                shape: widget.bottomCardShape,
-                color: widget.bottomCardColor,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ListTile(
-                      title: Text(_address),
-                      trailing: IconButton(
-                        tooltip: widget.bottomCardTooltip,
-                        icon: widget.bottomCardIcon,
-                        onPressed: () async {
-                          widget.onNext.call(_geocodingResult);
-                          if (widget.canPopOnNextButtonTaped) {
-                            Navigator.pop(context);
-                          }
-                        },
-                      ),
-                    ),
-                    if (widget.showMoreOptions &&
-                        _geocodingResultList.isNotEmpty)
-                      GestureDetector(
-                        onTap: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: Text(widget.dialogTitle),
-                              scrollable: true,
-                              content: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: _geocodingResultList.map((element) {
-                                  return ListTile(
-                                    title: Text(element.formattedAddress ?? ""),
-                                    onTap: () {
-                                      _address = element.formattedAddress ?? "";
-                                      _geocodingResult = element;
-                                      setState(() {});
-                                      Navigator.pop(context);
-                                    },
-                                  );
-                                }).toList(),
-                              ),
-                              actions: [
-                                TextButton(
-                                  child: const Text('Cancel'),
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                        child: Chip(
-                          label: Text(
-                            "Tap to show ${(_geocodingResultList.length - 1)} more result options",
-                          ),
-                        ),
-                      ),
-                  ],
+              GestureDetector(
+                onTap: () async {
+                  widget.onNext.call(_geocodingResult);
+                  if (widget.canPopOnNextButtonTaped) {
+                    Navigator.pop(context);
+                  }
+                },
+                child: Card(
+                  margin: widget.bottomCardMargin,
+                  shape: widget.bottomCardShape,
+                  color: widget.bottomCardColor,
+                  child: widget.widget!,
                 ),
               ),
+              // Card(
+              //   margin: widget.bottomCardMargin,
+              //   shape: widget.bottomCardShape,
+              //   color: widget.bottomCardColor,
+              //   child: Column(
+              //     mainAxisSize: MainAxisSize.min,
+              //     children: [
+              //       ListTile(
+              //         title: Text(_address),
+              //         trailing: IconButton(
+              //           tooltip: widget.bottomCardTooltip,
+              //           icon: widget.bottomCardIcon,
+              //           onPressed: () async {
+              //             widget.onNext.call(_geocodingResult);
+              //             if (widget.canPopOnNextButtonTaped) {
+              //               Navigator.pop(context);
+              //             }
+              //           },
+              //         ),
+              //       ),
+              //       if (widget.showMoreOptions &&
+              //           _geocodingResultList.isNotEmpty)
+              //         GestureDetector(
+              //           onTap: () {
+              //             showDialog(
+              //               context: context,
+              //               builder: (context) => AlertDialog(
+              //                 title: Text(widget.dialogTitle),
+              //                 scrollable: true,
+              //                 content: Column(
+              //                   mainAxisSize: MainAxisSize.min,
+              //                   children: _geocodingResultList.map((element) {
+              //                     return ListTile(
+              //                       title: Text(element.formattedAddress ?? ""),
+              //                       onTap: () {
+              //                         _address = element.formattedAddress ?? "";
+              //                         _geocodingResult = element;
+              //                         setState(() {});
+              //                         Navigator.pop(context);
+              //                       },
+              //                     );
+              //                   }).toList(),
+              //                 ),
+              //                 actions: [
+              //                   TextButton(
+              //                     child: const Text('Cancel'),
+              //                     onPressed: () {
+              //                       Navigator.pop(context);
+              //                     },
+              //                   ),
+              //                 ],
+              //               ),
+              //             );
+              //           },
+              //           child: Chip(
+              //             label: Text(
+              //               "Tap to show ${(_geocodingResultList.length - 1)} more result options",
+              //             ),
+              //           ),
+              //         ),
+              //     ],
+              //   ),
+              // ),
             ],
           ),
         ],
